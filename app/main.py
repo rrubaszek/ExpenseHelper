@@ -2,7 +2,6 @@ from fastapi import FastAPI
 from .database import Base, engine
 from .service import group_service, user_service, expense_service, settlement_service
 
-# create tables (for prototype). In prod: use Alembic.
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Expenses Splitter API")

@@ -4,8 +4,10 @@ SQLAlchemy==1.4.48
 psycopg2-binary
 alembic
 pydantic
+pydantic[email]
 python-jose[cryptography]
 passlib[bcrypt]
 pytest
 httpx
 pytest-asyncio
+python-multipart
