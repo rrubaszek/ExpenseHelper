@@ -40,6 +40,13 @@ class ExpenseCreate(BaseModel):
     description: Optional[str] = None
     splits: Dict[int, float]  # mapping user_id -> amount
 
+class ExpenseEqualSplit(BaseModel):
+    """Create an expense with equal splits among all group members"""
+    group_id: int
+    payer_id: int
+    amount: float
+    description: Optional[str] = None
+
 class ExpenseOut(BaseModel):
     id: int
     group_id: int
@@ -56,3 +63,10 @@ class Settlement(BaseModel):
     from_user: int
     to_user: int
     amount: float
+
+class PaymentReceipt(BaseModel):
+    """Mark a debt/settlement as paid"""
+    from_user: int
+    to_user: int
+    amount: float
+    group_id: int

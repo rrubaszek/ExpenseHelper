@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import Base, engine
-from .service import group_service, user_service, expense_service, settlement_service
+from .service import group_service, user_service, expense_service, settlement_service,report_service
 
 Base.metadata.create_all(bind=engine)
+# Database migrations should be handled outside the app (use Alembic).
 
 app = FastAPI(title="Expenses Splitter API")
 
@@ -19,3 +20,4 @@ app.include_router(group_service.router)
 app.include_router(user_service.router)
 app.include_router(expense_service.router)
 app.include_router(settlement_service.router)
+app.include_router(report_service.router)

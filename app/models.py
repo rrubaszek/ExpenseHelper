@@ -39,3 +39,17 @@ class Expense(Base):
 
     group = relationship("Group", back_populates="expenses")
     payer = relationship("User")
+
+
+class Payment(Base):
+    __tablename__ = "payments"
+    id = Column(Integer, primary_key=True, index=True)
+    from_user = Column(Integer, ForeignKey("users.id"), nullable=False)
+    to_user = Column(Integer, ForeignKey("users.id"), nullable=False)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=True)
+    amount = Column(Float, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    payer = relationship("User", foreign_keys=[from_user])
+    payee = relationship("User", foreign_keys=[to_user])
+    group = relationship("Group")

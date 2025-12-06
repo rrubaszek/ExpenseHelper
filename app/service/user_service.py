@@ -21,3 +21,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         raise HTTPException(status_code=401, detail="Invalid credentials")
     token = auth.create_access_token({"sub": str(user.id)})
     return {"access_token": token, "token_type": "bearer"}
+
+@router.get("/get-users", response_model=list[schemas.UserOut])
+def get_users(db: Session = Depends(database.get_db)):
+    users = user_repository.get_all_users(db)
+    return users

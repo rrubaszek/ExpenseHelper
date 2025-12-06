@@ -25,6 +25,41 @@ def create_expense(exp_in: schemas.ExpenseCreate, db: Session = Depends(database
     splits = expense_repository.parse_splits(exp)
     return {**exp.__dict__, "splits": splits}
 
+@router.post("/equal-split", response_model=schemas.ExpenseOut)
+def create_equal_split_expense(exp_in: schemas.ExpenseEqualSplit, db: Session = Depends(database.get_db), current_user = Depends(get_current_user)):
+    """Create an expense with equal splits among all group members"""
+    g = group_repository.get_group(db, exp_in.group_id)
+    if not g:
+        raise HTTPException(status_code=404, detail="Group not found")
+    if exp_in.payer_id not in [m.id for m in g.members]:
+        raise HTTPException(status_code=400, detail="Payer not in group")
+    
+    # calculate equal split among all members
+    num_members = len(g.members)
+    if num_members == 0:
+        raise HTTPException(status_code=400, detail="Group has no members")
+    
+    split_amount = round(exp_in.amount / num_members, 2)
+    splits = {m.id: split_amount for m in g.members}
+    
+    # adjust for rounding errors by adding remainder to last member
+    total = sum(splits.values())
+    if abs(total - exp_in.amount) > 0.01:
+        remainder = round(exp_in.amount - total, 2)
+        splits[g.members[-1].id] = round(splits[g.members[-1].id] + remainder, 2)
+    
+    # create expense with calculated splits
+    expense_data = schemas.ExpenseCreate(
+        group_id=exp_in.group_id,
+        payer_id=exp_in.payer_id,
+        amount=exp_in.amount,
+        description=exp_in.description,
+        splits=splits
+    )
+    exp = expense_repository.create_expense(db, expense_data)
+    splits_out = expense_repository.parse_splits(exp)
+    return {**exp.__dict__, "splits": splits_out}
+
 @router.get("/group/{group_id}", response_model=List[schemas.ExpenseOut])
 def list_group_expenses(group_id: int, db: Session = Depends(database.get_db), current_user = Depends(get_current_user)):
     expenses = expense_repository.list_expenses_for_group(db, group_id)
