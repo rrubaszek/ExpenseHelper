@@ -19,7 +19,9 @@ def get_group(group_id: int, db: Session = Depends(database.get_db), current_use
     g = group_repository.get_group(db, group_id)
     if not g:
         raise HTTPException(status_code=404, detail="Group not found")
-    # optional: check membership
+    check_member = any(member.id == current_user.id for member in g.members)
+    if not check_member:
+        raise HTTPException(status_code=403, detail="Not a member of the group")    
     return g
 
 @router.post("/{group_id}/members/{user_id}", response_model=schemas.GroupOut)
@@ -27,6 +29,9 @@ def add_member(group_id:int, user_id:int, db: Session = Depends(database.get_db)
     g = group_repository.get_group(db, group_id)
     if not g:
         raise HTTPException(status_code=404)
+    check_member = any(member.id == current_user.id for member in g.members)
+    if not check_member:
+        raise HTTPException(status_code=403, detail="Not a member of the group")  
     user = user_repository.get_user(db, user_id)
     if not user:
         raise HTTPException(status_code=404)
