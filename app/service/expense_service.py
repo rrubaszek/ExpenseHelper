@@ -75,3 +75,57 @@ def list_group_expenses(group_id: int, db: Session = Depends(database.get_db), c
             "created_at": e.created_at
         })
     return out
+
+@router.get("/{expense_id}", response_model=schemas.ExpenseOut)
+def get_expense(expense_id: int, db: Session = Depends(database.get_db), current_user = Depends(get_current_user)):
+    expense = expense_repository.get_expense_by_id(db, expense_id)
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Check if user is member of the group
+    g = group_repository.get_group(db, expense.group_id)
+    if not g or current_user.id not in [m.id for m in g.members]:
+        raise HTTPException(status_code=403, detail="Not a member of this group")
+
+    splits = expense_repository.parse_splits(expense)
+    return {**expense.__dict__, "splits": splits}
+
+@router.delete("/{expense_id}")
+def delete_expense(expense_id: int, db: Session = Depends(database.get_db), current_user = Depends(get_current_user)):
+    expense = expense_repository.get_expense_by_id(db, expense_id)
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Check if user is member of the group
+    g = group_repository.get_group(db, expense.group_id)
+    if not g or current_user.id not in [m.id for m in g.members]:
+        raise HTTPException(status_code=403, detail="Not a member of this group")
+
+    expense_repository.delete_expense(db, expense_id)
+    return {"message": "Expense deleted successfully"}
+
+@router.put("/{expense_id}", response_model=schemas.ExpenseOut)
+def update_expense(expense_id: int, exp_in: schemas.ExpenseCreate, db: Session = Depends(database.get_db), current_user = Depends(get_current_user)):
+    # Get existing expense
+    expense = expense_repository.get_expense_by_id(db, expense_id)
+    if not expense:
+        raise HTTPException(status_code=404, detail="Expense not found")
+
+    # Check if user is member of the group
+    g = group_repository.get_group(db, expense.group_id)
+    if not g or current_user.id not in [m.id for m in g.members]:
+        raise HTTPException(status_code=403, detail="Not a member of this group")
+
+    # Validate exp_in (same checks as create)
+    if exp_in.payer_id not in [m.id for m in g.members]:
+        raise HTTPException(status_code=400, detail="Payer not in group")
+    if set(exp_in.splits.keys()) - set([m.id for m in g.members]):
+        raise HTTPException(status_code=400, detail="Some split participants not in group")
+    total_splits = sum(exp_in.splits.values())
+    if abs(total_splits - exp_in.amount) > 0.01:
+        raise HTTPException(status_code=400, detail="Splits must sum to amount")
+
+    # Update
+    updated_expense = expense_repository.update_expense(db, expense_id, exp_in)
+    splits = expense_repository.parse_splits(updated_expense)
+    return {**updated_expense.__dict__, "splits": splits}

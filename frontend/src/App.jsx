@@ -1,9 +1,12 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ToastProvider } from './components/ui/Toast';
 import PrivateRoute from './components/PrivateRoute';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
+import GroupDetailPage from './pages/GroupDetailPage';
+import UserReportPage from './pages/UserReportPage';
 
 const HomeRedirect = () => {
   const { token } = useAuth();
@@ -24,6 +27,22 @@ function AppRoutes() {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/groups/:groupId"
+        element={
+          <PrivateRoute>
+            <GroupDetailPage />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/report"
+        element={
+          <PrivateRoute>
+            <UserReportPage />
+          </PrivateRoute>
+        }
+      />
     </Routes>
   );
 }
@@ -31,9 +50,11 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <ToastProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </ToastProvider>
     </AuthProvider>
   );
 }
